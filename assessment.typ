@@ -143,12 +143,25 @@
 //// Settings for the cover page elements
 
 ////// Logo, name line, teacher name line
-#let header(logo: "/assets/image-42.png") = {
+////// `logo` is YOUR school/organisation's logo, as image content you build
+////// yourself with `image(...)` in your own document (image paths inside a
+////// package are resolved relative to the package, not your project, so a
+////// bare path string here won't find your file - pass the already-built
+////// image instead). This package ships without a default logo, so pass one
+////// explicitly (to `header()` directly, or once via `theme(logo: ..., ...)`
+////// / `worksheet(logo: ..., ...)`), e.g.
+//////   #show: theme.with(logo: image("my-logo.png"), ...)
+#let _logo-state = state("cover-logo", none)
+#let header(logo: none) = context {
+  let logo = if logo != none { logo } else { _logo-state.get() }
+  if logo == none {
+    panic("vicsheets: no `logo` was provided. Pass one to header(logo: image(\"my-logo.png\")), or once via theme(logo: ..., ...) / worksheet(logo: ..., ...).")
+  }
   grid(
     columns: (auto, 1fr),
     column-gutter: 2em,
     align: horizon,
-    image(logo, width: 40mm),
+    box(width: 40mm, logo),
     [
       Full name:
       #v(-0.8em)
@@ -221,6 +234,7 @@
   approved: none,
   supplied: none,
   declaration: none,
+  logo: none,
   hide-marks: false,
   maths: false,
   body,
@@ -235,6 +249,7 @@
   if approved != none { _approved-state.update(approved) }
   if supplied != none { _supplied-state.update(supplied) }
   if declaration != none { _declaration-state.update(declaration) }
+  if logo != none { _logo-state.update(logo) }
   // Reset question counter on level 1 headings (so L1 can be used as a title)
   show heading.where(level: 1): it => {
     q-counter.update(0)
@@ -260,6 +275,7 @@
   approved: [- Approved Materials],
   supplied: [- Formula sheet],
   declaration: [I understand Albert Park College's Assessment Policy and #underline[confirm that the work presented within this assessment is my own]. I understand that any breach of these rules is a serious offence and may result in a loss of marks or a Not Assessed being awarded for this topic.],
+  logo: none,
   hide-marks: false,
   maths: false,
   cover-margin: (x:auto,y:2cm),
@@ -275,6 +291,7 @@
   _approved-state.update(approved)
   _supplied-state.update(supplied)
   _declaration-state.update(declaration)
+  if logo != none { _logo-state.update(logo) }
 
   // Header
   set page(
@@ -374,6 +391,71 @@
   line(length: 100%, stroke: 0.5pt)
   v(-2em)
 }
+
+//// Sections
+////// `#section([title])` starts a new section. It automatically letters the
+////// section (Section A, Section B, ...) based on how many sections have come
+////// before it in the document, prints the standard instructions for that
+////// kind of section, and a horizontal rule underneath.
+//////
+////// `kind` picks which standard instructions are printed: "written" (the
+////// default, for short-answer/student-response questions) or "mc" (for
+////// multiple-choice questions).
+//////
+////// Pass `instructions: [...]` to override the standard text with your own
+////// (a "custom" section) - or use `#section-custom([title], [instructions])`,
+////// which is the same thing written out. Pass `instructions: []` to suppress
+////// the instructions block entirely.
+#let _section-letter(n) = {
+  // 1 -> A, 2 -> B, ... 27 -> AA, 28 -> AB, ... (like spreadsheet columns)
+  let out = ""
+  let n = n
+  while n > 0 {
+    n -= 1
+    out = str.from-unicode(65 + calc.rem(n, 26)) + out
+    n = calc.quo(n, 26)
+  }
+  out
+}
+
+#let _mc-instructions = [
+- Attempt all questions by circling the *most correct* answer.
+- *Correct* answers will receive *1 mark*.
+- Marks will *not* be deducted for incorrect answers.
+]
+
+#let _written-instructions = [
+- Answer all questions in the spaces provided.
+- For questions that are worth more than 1 mark, you must show your working to receive full marks.
+]
+
+#let section(title, kind: "written", instructions: none) = context {
+  let n = s-counter.get().at(0) + 1
+  let letter = _section-letter(n)
+  // A real level-1 heading, so `contents()` picks it up in the table of
+  // contents (as before) and the section-break counter logic fires once.
+  [= Section #letter - #title]
+  let body = if instructions != none {
+    instructions
+  } else if kind == "mc" {
+    _mc-instructions
+  } else {
+    _written-instructions
+  }
+  if body != [] {
+    // Styled to look like a level-2 heading, but NOT a real heading element:
+    // a genuine level-2 heading here would also trigger worksheet()'s
+    // section-break counter logic (used elsewhere for `==` as a worksheet
+    // sub-section), double-stepping the section letter.
+    block(above: 2em, below: 1.1em)[#text(size: 16pt, weight: "bold")[Instructions]]
+    body
+    line(length: 100%)
+  }
+}
+
+////// `#section-custom([title], [instructions])` is shorthand for
+////// `#section([title], instructions: [instructions])`.
+#let section-custom(title, instructions) = section(title, instructions: instructions)
 
 //// Questions
 ////// `#q()` starts a new question. You can then type the question stem and add subquestions. If it is a one-part question, text can be embedded in the function itself, like `#q([Question text], X, Y) where X = number of lines, Y = number of marks.
@@ -561,7 +643,7 @@
 
 // Maths diagrams
 //// These functions 
-#import "/Templates/maths.typ": build as _build-diagrams, labmat
+#import "maths.typ": build as _build-diagrams, labmat
 #let _d = _build-diagrams()
 #let mesh = _d.mesh
 #let plane = _d.plane
