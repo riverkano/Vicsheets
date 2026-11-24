@@ -1,1 +1,17 @@
-    
+[package]
+name = "vicsheets"
+version = "0.1.0"
+entrypoint = "assessment.typ"
+authors = ["River Kano"]
+license = "MIT-0"
+description = "Create VCAA-style worksheets and assessments with automatic question numbering, mark tallying, and a cover page/table of contents, without hand-building tables."
+repository = "https://github.com/PLACEHOLDER_USERNAME/vicsheets"
+keywords = ["education", "worksheet", "assessment", "exam", "vcaa", "mathematics", "exam-paper"]
+categories = ["office"]
+disciplines = ["mathematics"]
+compiler = "0.13.0"
+exclude = ["*.pdf"]
+
+[package.template]
+path = "template"
+entrypoint = "main.typ"
