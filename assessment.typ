@@ -409,19 +409,11 @@
 }
 
 //// Sections
-////// `#section([title])` starts a new section. It automatically letters the
-////// section (Section A, Section B, ...) based on how many sections have come
-////// before it in the document, prints the standard instructions for that
-////// kind of section, and a horizontal rule underneath.
-//////
-////// `kind` picks which standard instructions are printed: "written" (the
-////// default, for short-answer/student-response questions) or "mc" (for
-////// multiple-choice questions).
-//////
-////// Pass `instructions: [...]` to override the standard text with your own
-////// (a "custom" section) - or use `#section-custom([title], [instructions])`,
-////// which is the same thing written out. Pass `instructions: []` to suppress
-////// the instructions block entirely.
+////// `#sec([title])`, `#sec-mcq([title])` and `#sec-cus([title], [instructions])`
+////// all start a new section. They automatically letter the section
+////// (Section A, Section B, ...) based on how many sections have come before
+////// it in the document, print instructions underneath, and a horizontal
+////// rule. See each function below for what instructions it prints.
 #let _section-letter(n) = {
   // 1 -> A, 2 -> B, ... 27 -> AA, 28 -> AB, ... (like spreadsheet columns)
   let out = ""
@@ -445,7 +437,7 @@
 - For questions that are worth more than 1 mark, you must show your working to receive full marks.
 ]
 
-#let section(title, kind: "written", instructions: none) = context {
+#let _section-render(title, kind: "written", instructions: none, extra: none) = context {
   let n = s-counter.get().at(0) + 1
   let letter = _section-letter(n)
   // A real level-1 heading, so `contents()` picks it up in the table of
@@ -453,10 +445,9 @@
   [= Section #letter - #title]
   let body = if instructions != none {
     instructions
-  } else if kind == "mc" {
-    _mc-instructions
   } else {
-    _written-instructions
+    let standard = if kind == "mc" { _mc-instructions } else { _written-instructions }
+    if extra != none { standard + extra } else { standard }
   }
   if body != [] {
     // Styled to look like a level-2 heading, but NOT a real heading element:
@@ -469,9 +460,21 @@
   }
 }
 
-////// `#section-custom([title], [instructions])` is shorthand for
-////// `#section([title], instructions: [instructions])`.
-#let section-custom(title, instructions) = section(title, instructions: instructions)
+////// `#sec([title])` starts a standard (written-response) section, printing
+////// the standard written-response instructions. Pass `extra: [...]` to
+////// append your own bullet(s) underneath the standard instructions.
+#let sec(title, extra: none) = _section-render(title, kind: "written", extra: extra)
+
+////// `#sec-mcq([title])` starts a multiple-choice section, printing the
+////// standard MC instructions. Pass `extra: [...]` to append your own
+////// bullet(s) underneath the standard instructions.
+#let sec-mcq(title, extra: none) = _section-render(title, kind: "mc", extra: extra)
+
+////// `#sec-cus([title], [instructions])` starts a custom section: the
+////// letter and title print as usual, but `instructions` fully replaces
+////// the standard instructions text (pass `[]` to print no instructions
+////// at all).
+#let sec-cus(title, instructions) = _section-render(title, instructions: instructions)
 
 //// Questions
 ////// `#q()` starts a new question. You can then type the question stem and add subquestions. If it is a one-part question, text can be embedded in the function itself, like `#q([Question text], X, Y) where X = number of lines, Y = number of marks.

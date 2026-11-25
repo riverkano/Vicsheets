@@ -4,14 +4,15 @@ version = "0.1.0"
 entrypoint = "assessment.typ"
 authors = ["River Kano"]
 license = "MIT-0"
-description = "Create VCAA-style worksheets and assessments with automatic question numbering, mark tallying, and a cover page/table of contents, without hand-building tables."
+description = "Auto-numbered VCAA-style worksheets and assessments"
 repository = "https://github.com/riverkano/Vicsheets"
-keywords = ["education", "worksheet", "assessment", "exam", "vcaa", "mathematics", "exam-paper"]
+keywords = ["education", "worksheet", "assessment", "exam", "vcaa", "mathematics"]
 categories = ["office"]
 disciplines = ["mathematics"]
 compiler = "0.13.0"
 exclude = ["*.pdf"]
 
-[package.template]
+[template]
 path = "template"
 entrypoint = "main.typ"
+thumbnail = "thumbnail.png"
