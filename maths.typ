@@ -1,19 +1,6 @@
 #import "@preview/cetz:0.4.2"
 
-// A labelled matrix usable directly inside maths, like `mat`.
-//
-//   $T = labmat(P, R, ; 0.7, 0.4, P; 0.3, 0.6, R)$
-//
-// First row  = column labels, then a trailing comma for the empty corner.
-// Each later row = the entries, then a trailing row label.
-// Quoted strings ("Stay") render as upright text and rotate as column
-// labels when wide; everything else renders as maths and never rotates.
-//
-// Call it BARE in maths (not with #): the `;` row syntax is a maths-mode
-// feature, so `#labmat(...)` will not parse.
-//
-// Brackets and row spacing are taken from a throwaway native `mat` of the
-// entries, so the result matches `mat` exactly with labels added around it.
+// Labelled matrices
 #let labmat(..args) = context {
   let rows = args.pos()
   let numcols = rows.first().len() - 1
@@ -24,17 +11,12 @@
 
   let cell(c) = $#c$
   let render(l) = if type(l) == str { [#l] } else { $#l$ }
-  // column labels: quoted words rotate when wide; maths never rotates
   let collabel(l) = {
     let c = render(l)
     pad(bottom: 0.12em, if type(l) == str and measure(c).width > 14pt {
       rotate(-90deg, reflow: true, c)
     } else { c })
   }
-
-  // Simulate the plain matrix (entries only) and borrow real `mat` metrics:
-  //   simH  = height with brackets    -> our bracket height
-  //   bareH = height without brackets -> our entry rows' total height
   let simH = measure(math.equation(block: true, math.mat(delim: "[", ..entries))).height
   let bareH = measure(math.equation(block: true, math.mat(delim: none, ..entries))).height
   let bandH = bareH / numrows
@@ -49,9 +31,7 @@
     stroke: none,
     align: center + horizon,
     inset: (x: 0.22em, y: 0pt),
-    // column labels
     [], ..collabels.map(collabel), [], [],
-    // data rows with bracket cells and row labels
     ..for (i, r) in datarows.enumerate() {
       (
         ..if i == 0 { (delimcell($\[$),) },
@@ -60,15 +40,10 @@
         render(r.at(numcols)),
       )
     },
-    // hidden copy of the label row, to balance it and centre the body
     [], ..collabels.map(l => hide(collabel(l))), [], [],
   ))
 }
 
-
-// Each colour parameter may be either a colour value or a zero-arg
-// function returning a colour. Functions are resolved at render time inside
-// a `context { ... }` block so themes can swap palette mid-document.
 #let _resolve(x) = if type(x) == function { x() } else { x }
 
 #let build(fg: black, ca: black, cb: black, cf: black) = {
@@ -140,10 +115,6 @@
     height: 0.7cm,
   ) = context {
     let fg = _resolve(fg)
-    // Map data x to canvas units so the canvas has a fixed unit length.
-    // Total horizontal span in canvas units = `span`; cetz `length` then
-    // converts that span to `width` regardless of axis range, leaving
-    // vertical sizes (tick height, ray-y, dot radius) unaffected.
     let span = 10
     let sx(x) = (x - axis-start) * span / (axis-end - axis-start)
     cetz.canvas(length: width / span, {
@@ -189,7 +160,6 @@
     })
   }
 
-  // Inline blank for a short fill-in-the-blank answer, sized in ems.
   let gp(x) = context {
     let fg = _resolve(fg)
     box(width: x * 1em, line(length: 100%, stroke: 0.5pt + fg))
@@ -246,9 +216,6 @@
     }))
   }
 
-  // --- FRACTION DIAGRAMS ---
-  // frac-circle(n, 1, 2)    → circle split into n wedges, 1st & 2nd shaded
-  // frac-rectangle(n, 1, 2) → horizontal 5cm × 1cm bar split into n strips
   let frac-circle(n, ..filled) = context {
     let fg = _resolve(fg)
     let cf = _resolve(cf)

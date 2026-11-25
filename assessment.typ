@@ -109,9 +109,18 @@
       let final_end = calc.max(start_page, end_page)
       let page_range = if start_page == final_end { [#start_page] } else { [#start_page–#final_end] }
 
+      // Space elements between words (e.g. between "Section" and the letter)
+      // are content, not text, and were previously dropped, collapsing
+      // "Section A" into "SectionA" in the table of contents.
+      let _space-func = [ ].func()
       let full_text = ""
       if it.body.has("children") {
-        full_text = it.body.children.map(c => if c.has("text") { c.text } else if type(c) == str { c } else { "" }).join()
+        full_text = it.body.children.map(c => {
+          if c.has("text") { c.text }
+          else if type(c) == str { c }
+          else if c.func() == _space-func { " " }
+          else { "" }
+        }).join()
       } else if it.body.has("text") {
         full_text = it.body.text
       }
@@ -138,7 +147,11 @@
 #let _writing-state = state("cover-writing", [55 minutes])
 #let _approved-state = state("cover-approved", [- Approved Materials])
 #let _supplied-state = state("cover-supplied", [- Formula sheet])
-#let _declaration-state = state("cover-declaration", [I understand Albert Park College's Assessment Policy and #underline[confirm that the work presented within this assessment is my own]. I understand that any breach of these rules is a serious offence and may result in a loss of marks or a Not Assessed being awarded for this topic.])
+////// No default is shipped here - every school's assessment policy is
+////// different, so pass your own wording per document (to `declaration-box()`
+////// directly, or once via `theme(declaration: [...], ...)` /
+////// `worksheet(declaration: [...], ...)`).
+#let _declaration-state = state("cover-declaration", none)
 
 //// Settings for the cover page elements
 
@@ -208,6 +221,9 @@
 //// Student declaration box, with a signature/date line.
 #let declaration-box(body: none) = context {
   let body = if body != none { body } else { _declaration-state.get() }
+  if body == none {
+    panic("vicsheets: no `declaration` was provided. Pass one to declaration-box(body: [...]), or once via theme(declaration: [...], ...) / worksheet(declaration: [...], ...).")
+  }
   rect(width: 100%, stroke: 0.75pt, inset: 10pt)[
     *Student Declaration:* \
     #body
@@ -274,7 +290,7 @@
   writing: [55 minutes],
   approved: [- Approved Materials],
   supplied: [- Formula sheet],
-  declaration: [I understand Albert Park College's Assessment Policy and #underline[confirm that the work presented within this assessment is my own]. I understand that any breach of these rules is a serious offence and may result in a loss of marks or a Not Assessed being awarded for this topic.],
+  declaration: none,
   logo: none,
   hide-marks: false,
   maths: false,
